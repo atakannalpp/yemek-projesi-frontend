@@ -11,11 +11,15 @@ function App() {
   const [recipeTitle, setRecipeTitle] = useState('')
   const [recipeDesc, setRecipeDesc] = useState('')
   const [selectedRecipe, setSelectedRecipe] = useState(null)
-  const [selectedCategoryId, setSelectedCategoryId] = useState(1); // Varsayılan olarak 1. kategori
+  const [selectedCategoryId, setSelectedCategoryId] = useState(1); 
+
+  // CANLI BACKEND URL'İN
+  const API_URL = 'https://yemek-projesi-backend.onrender.com';
 
   const tarifleriGetir = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/users')
+      // Not: Backend rotalarınıza göre endpoint'i (/) kontrol edin, genellikle /users veya /recipes olur.
+      const res = await axios.get(`${API_URL}/`) 
       let list = []
       res.data.forEach(u => {
         if(u.recipes) {
@@ -30,62 +34,70 @@ function App() {
 
   const loginYap = async () => {
     try {
-      const res = await axios.post('http://localhost:3000/users/login', { username, password })
+      const res = await axios.post(`${API_URL}/`, { username, password })
       setCurrentUser(res.data)
     } catch (e) { alert("Hatalı kullanıcı adı veya şifre!") }
   }
 
   const kayitOl = async () => {
     try {
-      await axios.post('http://localhost:3000/users/register', { username, password, role })
+      await axios.post(`${API_URL}/`, { username, password, role })
       alert("Kayıt başarılı! Giriş yapabilirsin."); setIsRegister(false)
     } catch (e) { alert("Kayıt hatası!") }
   }
 
   const tarifEkle = async () => {
-  await axios.post('http://localhost:3000/users/add-recipe', { 
-    title: recipeTitle, 
-    description: recipeDesc, 
-    userId: currentUser.id,
-    categoryIds: [selectedCategoryId] // Seçilen kategoriyi dizi içinde gönderiyoruz
-  })
-  setRecipeTitle(''); 
-  setRecipeDesc(''); 
-  tarifleriGetir();
-  alert("Tarif başarıyla eklendi!");
-}
+    try {
+      await axios.post(`${API_URL}/`, { 
+        title: recipeTitle, 
+        description: recipeDesc, 
+        userId: currentUser.id,
+        categoryIds: [selectedCategoryId] 
+      })
+      setRecipeTitle(''); 
+      setRecipeDesc(''); 
+      tarifleriGetir();
+      alert("Tarif başarıyla eklendi!");
+    } catch (e) { alert("Tarif eklenirken bir hata oluştu!"); }
+  }
 
   const tarifSil = async (id) => {
     if(window.confirm("Bu tarifi silmek istiyor musun?")) {
-      await axios.delete(`http://localhost:3000/users/recipe/${id}`)
-      tarifleriGetir()
+      try {
+        // localhost yerine API_URL kullanıldı
+        await axios.delete(`${API_URL}/users/recipe/${id}`)
+        tarifleriGetir()
+      } catch (e) { alert("Silme işlemi başarısız!"); }
     }
   }
 
   const tarifGuncelle = async (id, eskiAd) => {
     const yeniAd = prompt("Yemek adını güncelle:", eskiAd)
     if(yeniAd) {
-      await axios.put(`http://localhost:3000/users/recipe/${id}`, { title: yeniAd })
-      tarifleriGetir()
+      try {
+        // localhost yerine API_URL kullanıldı
+        await axios.put(`${API_URL}/users/recipe/${id}`, { title: yeniAd })
+        tarifleriGetir()
+      } catch (e) { alert("Güncelleme işlemi başarısız!"); }
     }
   }
 
   return (
-  <div style={{ 
-    padding: '30px', 
-    textAlign: 'center', 
-    fontFamily: 'Arial', 
-    width: '100vw',
-    minHeight:'100vh',
-    margin:0,
-    backgroundImage: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://cairoscene.com/Content/Admin/Uploads/Articles/ArticlesMainPhoto/1155510/b9884374-947c-4ad8-8cbb-86be410ef6ab.jpg')", 
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed',
-  }}>
-<h1 style={{ color: '#ffffff', textShadow: '2px 2px 10px rgba(0,0,0,0.8)' }}>
-  🍅 Tarif Dünyası
-</h1>
+    <div style={{ 
+      padding: '30px', 
+      textAlign: 'center', 
+      fontFamily: 'Arial', 
+      width: '100vw',
+      minHeight:'100vh',
+      margin:0,
+      backgroundImage: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://cairoscene.com/Content/Admin/Uploads/Articles/ArticlesMainPhoto/1155510/b9884374-947c-4ad8-8cbb-86be410ef6ab.jpg')", 
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
+    }}>
+      <h1 style={{ color: '#ffffff', textShadow: '2px 2px 10px rgba(0,0,0,0.8)' }}>
+        🍅 Tarif Dünyası
+      </h1>
       {!currentUser ? (
         <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '15px', display: 'inline-block', boxShadow: '0 4px 10px rgba(26, 192, 35, 0.1)' }}>
           <h2>{isRegister ? 'Kayıt Ol' : 'Giriş Yap'}</h2>
@@ -110,30 +122,23 @@ function App() {
           </div>
 
           {currentUser.role === 'admin' && (
-  <div style={{ backgroundColor: '#fff3e0', padding: '20px', borderRadius: '10px', marginBottom: '20px', border:'1px dashed #d35400' }}>
-    <h4>👨‍🍳 Yeni Tarif Paylaş</h4>
-    
-    {/* 1. Yemek Adı Inputu */}
-    <input value={recipeTitle} placeholder="Yemek Adı" style={inputStyle} onChange={e => setRecipeTitle(e.target.value)} />
-    
-    {/* BURAYA EKLE: Kategori Seçimi */}
-    <select 
-      style={inputStyle} 
-      value={selectedCategoryId} 
-      onChange={e => setSelectedCategoryId(Number(e.target.value))}
-    >
-      <option value="" disabled>Kategori Seçiniz</option>
-      <option value="1">Ana Yemek</option>
-      <option value="2">Tatlı</option>
-      <option value="3">Çorba</option>
-    </select>
-
-    {/* 2. Nasıl Yapılır Textarea */}
-    <textarea value={recipeDesc} placeholder="Nasıl Yapılır?" style={inputStyle} onChange={e => setRecipeDesc(e.target.value)} />
-    
-    <button onClick={tarifEkle} style={btnStyle}>Yayınla</button>
-  </div>
-)}
+            <div style={{ backgroundColor: '#fff3e0', padding: '20px', borderRadius: '10px', marginBottom: '20px', border:'1px dashed #d35400' }}>
+              <h4>👨‍🍳 Yeni Tarif Paylaş</h4>
+              <input value={recipeTitle} placeholder="Yemek Adı" style={inputStyle} onChange={e => setRecipeTitle(e.target.value)} />
+              <select 
+                style={inputStyle} 
+                value={selectedCategoryId} 
+                onChange={e => setSelectedCategoryId(Number(e.target.value))}
+              >
+                <option value="" disabled>Kategori Seçiniz</option>
+                <option value="1">Ana Yemek</option>
+                <option value="2">Tatlı</option>
+                <option value="3">Çorba</option>
+              </select>
+              <textarea value={recipeDesc} placeholder="Nasıl Yapılır?" style={inputStyle} onChange={e => setRecipeDesc(e.target.value)} />
+              <button onClick={tarifEkle} style={btnStyle}>Yayınla</button>
+            </div>
+          )}
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center', marginTop:'30px' }}>
             {recipes.map(r => (
@@ -142,8 +147,6 @@ function App() {
                    <h3 style={{color:'#d35400'}}>{r.title}</h3>
                    <p style={{fontSize:'12px', color:'#7f8c8d'}}>Şef: {r.sef}</p>
                 </div>
-                
-                {/* SİLME VE DÜZENLEME BUTONLARI */}
                 {currentUser.role === 'admin' && (
                   <div style={{marginTop:'10px', borderTop:'1px solid #eee', paddingTop:'10px'}}>
                     <button onClick={() => tarifGuncelle(r.id, r.title)} style={{fontSize:'11px', marginRight:'5px', color:'blue'}}>Düzenle</button>
