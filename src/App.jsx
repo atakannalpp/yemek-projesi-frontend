@@ -13,13 +13,13 @@ function App() {
   const [selectedRecipe, setSelectedRecipe] = useState(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState(1); 
 
-  // CANLI BACKEND URL'İN
+  // CANLI BACKEND URL'İN (Sonunda / olmasın)
   const API_URL = 'https://yemek-projesi-backend.onrender.com';
 
   const tarifleriGetir = async () => {
     try {
-      // Not: Backend rotalarınıza göre endpoint'i (/) kontrol edin, genellikle /users veya /recipes olur.
-      const res = await axios.get(`${API_URL}/`) 
+      // ÇOĞU NESTJS PROJESİNDE ANA LİSTE /users ALTINDADIR
+      const res = await axios.get(`${API_URL}/users`) 
       let list = []
       res.data.forEach(u => {
         if(u.recipes) {
@@ -27,28 +27,35 @@ function App() {
         }
       })
       setRecipes(list)
-    } catch (e) { console.log("Veri çekme hatası") }
+    } catch (e) { console.log("Veri çekme hatası:", e) }
   }
 
   useEffect(() => { if (currentUser) tarifleriGetir() }, [currentUser])
 
   const loginYap = async () => {
     try {
-      const res = await axios.post(`${API_URL}/`, { username, password })
+      // LOGIN İŞLEMİ GENELDE /users/login VEYA /auth/login OLUR
+      // Eğer backendde sadece POST /users ise öylece bırakabilirsin
+      const res = await axios.post(`${API_URL}/users/login`, { username, password })
       setCurrentUser(res.data)
-    } catch (e) { alert("Hatalı kullanıcı adı veya şifre!") }
+    } catch (e) { 
+        console.error(e);
+        alert("Giriş yapılamadı. Backend rotasını kontrol edin."); 
+    }
   }
 
   const kayitOl = async () => {
     try {
-      await axios.post(`${API_URL}/`, { username, password, role })
-      alert("Kayıt başarılı! Giriş yapabilirsin."); setIsRegister(false)
+      await axios.post(`${API_URL}/users`, { username, password, role })
+      alert("Kayıt başarılı! Giriş yapabilirsin."); 
+      setIsRegister(false)
     } catch (e) { alert("Kayıt hatası!") }
   }
 
   const tarifEkle = async () => {
     try {
-      await axios.post(`${API_URL}/`, { 
+      // TARİF EKLEMEK İÇİN GENELDE /users/recipe GİBİ BİR YOL KULLANILIR
+      await axios.post(`${API_URL}/users/recipe`, { 
         title: recipeTitle, 
         description: recipeDesc, 
         userId: currentUser.id,
@@ -64,7 +71,6 @@ function App() {
   const tarifSil = async (id) => {
     if(window.confirm("Bu tarifi silmek istiyor musun?")) {
       try {
-        // localhost yerine API_URL kullanıldı
         await axios.delete(`${API_URL}/users/recipe/${id}`)
         tarifleriGetir()
       } catch (e) { alert("Silme işlemi başarısız!"); }
@@ -75,7 +81,6 @@ function App() {
     const yeniAd = prompt("Yemek adını güncelle:", eskiAd)
     if(yeniAd) {
       try {
-        // localhost yerine API_URL kullanıldı
         await axios.put(`${API_URL}/users/recipe/${id}`, { title: yeniAd })
         tarifleriGetir()
       } catch (e) { alert("Güncelleme işlemi başarısız!"); }
@@ -84,16 +89,9 @@ function App() {
 
   return (
     <div style={{ 
-      padding: '30px', 
-      textAlign: 'center', 
-      fontFamily: 'Arial', 
-      width: '100vw',
-      minHeight:'100vh',
-      margin:0,
+      padding: '30px', textAlign: 'center', fontFamily: 'Arial', width: '100vw', minHeight:'100vh', margin:0,
       backgroundImage: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://cairoscene.com/Content/Admin/Uploads/Articles/ArticlesMainPhoto/1155510/b9884374-947c-4ad8-8cbb-86be410ef6ab.jpg')", 
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
+      backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed',
     }}>
       <h1 style={{ color: '#ffffff', textShadow: '2px 2px 10px rgba(0,0,0,0.8)' }}>
         🍅 Tarif Dünyası
@@ -116,21 +114,16 @@ function App() {
         </div>
       ) : (
         <div>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0 20px'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0 20px', color:'white'}}>
              <h3>👤 {currentUser.username} ({currentUser.role === 'admin' ? 'Şef' : 'Gurme'})</h3>
-             <button onClick={() => setCurrentUser(null)} style={{backgroundColor:'#7f8c8d', color:'white', border:'none', padding:'5px 10px', borderRadius:'5px'}}>Çıkış</button>
+             <button onClick={() => setCurrentUser(null)} style={{backgroundColor:'#7f8c8d', color:'white', border:'none', padding:'5px 10px', borderRadius:'5px', cursor:'pointer'}}>Çıkış</button>
           </div>
 
           {currentUser.role === 'admin' && (
             <div style={{ backgroundColor: '#fff3e0', padding: '20px', borderRadius: '10px', marginBottom: '20px', border:'1px dashed #d35400' }}>
               <h4>👨‍🍳 Yeni Tarif Paylaş</h4>
               <input value={recipeTitle} placeholder="Yemek Adı" style={inputStyle} onChange={e => setRecipeTitle(e.target.value)} />
-              <select 
-                style={inputStyle} 
-                value={selectedCategoryId} 
-                onChange={e => setSelectedCategoryId(Number(e.target.value))}
-              >
-                <option value="" disabled>Kategori Seçiniz</option>
+              <select style={inputStyle} value={selectedCategoryId} onChange={e => setSelectedCategoryId(Number(e.target.value))}>
                 <option value="1">Ana Yemek</option>
                 <option value="2">Tatlı</option>
                 <option value="3">Çorba</option>
@@ -149,8 +142,8 @@ function App() {
                 </div>
                 {currentUser.role === 'admin' && (
                   <div style={{marginTop:'10px', borderTop:'1px solid #eee', paddingTop:'10px'}}>
-                    <button onClick={() => tarifGuncelle(r.id, r.title)} style={{fontSize:'11px', marginRight:'5px', color:'blue'}}>Düzenle</button>
-                    <button onClick={() => tarifSil(r.id)} style={{fontSize:'11px', color:'red'}}>Sil</button>
+                    <button onClick={() => tarifGuncelle(r.id, r.title)} style={{fontSize:'11px', marginRight:'5px', color:'blue', background:'none', border:'none', cursor:'pointer'}}>Düzenle</button>
+                    <button onClick={() => tarifSil(r.id)} style={{fontSize:'11px', color:'red', background:'none', border:'none', cursor:'pointer'}}>Sil</button>
                   </div>
                 )}
               </div>
