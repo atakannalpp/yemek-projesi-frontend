@@ -13,12 +13,12 @@ function App() {
   const [selectedRecipe, setSelectedRecipe] = useState(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState(1); 
 
-  // CANLI BACKEND URL'İN (Sonunda / olmasın)
+  // CANLI BACKEND URL'İN
   const API_URL = 'https://yemek-projesi-backend.onrender.com';
 
+  // 1. Tarifleri Getirme (Backend @Get() -> /users)
   const tarifleriGetir = async () => {
     try {
-      // ÇOĞU NESTJS PROJESİNDE ANA LİSTE /users ALTINDADIR
       const res = await axios.get(`${API_URL}/users`) 
       let list = []
       res.data.forEach(u => {
@@ -27,35 +27,38 @@ function App() {
         }
       })
       setRecipes(list)
-    } catch (e) { console.log("Veri çekme hatası:", e) }
+    } catch (e) { 
+      console.log("Veri çekme hatası:", e) 
+    }
   }
 
   useEffect(() => { if (currentUser) tarifleriGetir() }, [currentUser])
 
+  // 2. Giriş Yapma (Backend @Post('login') -> /users/login)
   const loginYap = async () => {
     try {
-      // LOGIN İŞLEMİ GENELDE /users/login VEYA /auth/login OLUR
-      // Eğer backendde sadece POST /users ise öylece bırakabilirsin
       const res = await axios.post(`${API_URL}/users/login`, { username, password })
       setCurrentUser(res.data)
     } catch (e) { 
-        console.error(e);
-        alert("Giriş yapılamadı. Backend rotasını kontrol edin."); 
+      alert("Hatalı kullanıcı adı veya şifre!") 
     }
   }
 
+  // 3. Kayıt Olma (Backend @Post('register') -> /users/register)
   const kayitOl = async () => {
     try {
-      await axios.post(`${API_URL}/users`, { username, password, role })
+      await axios.post(`${API_URL}/users/register`, { username, password, role })
       alert("Kayıt başarılı! Giriş yapabilirsin."); 
       setIsRegister(false)
-    } catch (e) { alert("Kayıt hatası!") }
+    } catch (e) { 
+      alert("Kayıt hatası!") 
+    }
   }
 
+  // 4. Tarif Ekleme (Backend @Post('add-recipe') -> /users/add-recipe)
   const tarifEkle = async () => {
     try {
-      // TARİF EKLEMEK İÇİN GENELDE /users/recipe GİBİ BİR YOL KULLANILIR
-      await axios.post(`${API_URL}/users/recipe`, { 
+      await axios.post(`${API_URL}/users/add-recipe`, { 
         title: recipeTitle, 
         description: recipeDesc, 
         userId: currentUser.id,
@@ -65,25 +68,33 @@ function App() {
       setRecipeDesc(''); 
       tarifleriGetir();
       alert("Tarif başarıyla eklendi!");
-    } catch (e) { alert("Tarif eklenirken bir hata oluştu!"); }
+    } catch (e) { 
+      alert("Tarif eklenirken hata oluştu!"); 
+    }
   }
 
+  // 5. Tarif Silme (Backend @Delete('recipe/:id') -> /users/recipe/:id)
   const tarifSil = async (id) => {
     if(window.confirm("Bu tarifi silmek istiyor musun?")) {
       try {
         await axios.delete(`${API_URL}/users/recipe/${id}`)
         tarifleriGetir()
-      } catch (e) { alert("Silme işlemi başarısız!"); }
+      } catch (e) { 
+        alert("Silme işlemi başarısız!") 
+      }
     }
   }
 
+  // 6. Tarif Güncelleme (Backend @Put('recipe/:id') -> /users/recipe/:id)
   const tarifGuncelle = async (id, eskiAd) => {
     const yeniAd = prompt("Yemek adını güncelle:", eskiAd)
     if(yeniAd) {
       try {
         await axios.put(`${API_URL}/users/recipe/${id}`, { title: yeniAd })
         tarifleriGetir()
-      } catch (e) { alert("Güncelleme işlemi başarısız!"); }
+      } catch (e) { 
+        alert("Güncelleme işlemi başarısız!") 
+      }
     }
   }
 
